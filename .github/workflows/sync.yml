@@ -1,0 +1,34 @@
+# Daily: copy every branch and tag from morluto/rea into Mike's fork spongebobmoviept-lab/rea.
+# Plain (non-force) push on purpose: if upstream rewrites history or the fork gets its own commits,
+# the push is rejected and this run fails (GitHub emails Mike) instead of overwriting anything.
+# Add another fork: make a read-write deploy key on that fork, store its private half as a new
+# secret here (e.g. FOO_DEPLOY_KEY), then copy the `rea` job below with the new URLs + secret.
+name: sync
+on:
+  schedule:
+    - cron: "15 9 * * *"   # ~5:15 AM Eastern
+  workflow_dispatch:
+permissions:
+  actions: write
+  contents: read
+jobs:
+  rea:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy key
+        env:
+          KEY: ${{ secrets.REA_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+      - name: Sync
+        run: |
+          git clone --bare --quiet https://github.com/morluto/rea r.git
+          git -C r.git push git@github.com:spongebobmoviept-lab/rea.git 'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
+      # Scheduled workflows in public repos get switched off after 60 days with no repo activity; this keeps it on.
+      - name: Keepalive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT repos/${{ github.repository }}/actions/workflows/sync.yml/enable
