@@ -1,6 +1,8 @@
-# Daily: copy every branch and tag from morluto/rea into Mike's fork spongebobmoviept-lab/rea.
-# Plain (non-force) push on purpose: if upstream rewrites history or the fork gets its own commits,
+# Daily: copy main and every tag from morluto/rea into Mike's fork spongebobmoviept-lab/rea.
+# Plain (non-force) push on purpose: if upstream rewrites main/a tag or the fork gets its own commits,
 # the push is rejected and this run fails (GitHub emails Mike) instead of overwriting anything.
+# Only main, not every branch: upstream's ~230 PR/bot branches (dependabot, release-please, cursor/rebase-*)
+# get rebased all the time, so a non-force push of them would fail nearly every day.
 # Add another fork: make a read-write deploy key on that fork, store its private half as a new
 # secret here (e.g. FOO_DEPLOY_KEY), then copy the `rea` job below with the new URLs + secret.
 name: sync
@@ -26,7 +28,7 @@ jobs:
       - name: Sync
         run: |
           git clone --bare --quiet https://github.com/morluto/rea r.git
-          git -C r.git push git@github.com:spongebobmoviept-lab/rea.git 'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
+          git -C r.git push git@github.com:spongebobmoviept-lab/rea.git 'refs/heads/main:refs/heads/main' 'refs/tags/*:refs/tags/*'
       # Scheduled workflows in public repos get switched off after 60 days with no repo activity; this keeps it on.
       - name: Keepalive
         env:
